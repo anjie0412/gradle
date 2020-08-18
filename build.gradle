@@ -1,0 +1,62 @@
+plugins {
+    id 'groovy'
+    id 'java-gradle-plugin'
+    id 'com.gradle.plugin-publish' version '0.10.1'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+repositories {
+    jcenter()
+}
+
+dependencies {
+    implementation gradleApi()
+    implementation localGroovy()
+    implementation 'com.github.fge:json-schema-validator:2.2.6'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.2.3'
+
+    testImplementation('org.spockframework:spock-core:1.1-groovy-2.4') {
+        exclude module: 'groovy-all'
+    }
+    testRuntimeOnly 'cglib:cglib-nodep:3.2.10'
+}
+
+group = 'org.hidetake'
+version = System.getenv('CIRCLE_TAG') ?: 'SNAPSHOT'
+
+pluginBundle {
+    website = 'https://github.com/int128/gradle-swagger-generator-plugin'
+    vcsUrl = 'https://github.com/int128/gradle-swagger-generator-plugin'
+    tags = ['swagger', 'api', 'generator']
+}
+
+gradlePlugin {
+    plugins {
+        swaggerPlugin {
+            id = 'org.hidetake.swagger.generator'
+            displayName = 'Gradle Swagger Generator Plugin'
+            description = 'Gradle plugin for OpenAPI YAML validation, code generation and API document publishing'
+            implementationClass = 'org.hidetake.gradle.swagger.generator.SwaggerGeneratorPlugin'
+        }
+    }
+}
+
+allprojects {
+    afterEvaluate {
+        tasks.withType(Test) {
+            finalizedBy ':testReport'
+            testReport.reportOn binaryResultsDirectory
+            reports.html.enabled = false
+            reports.junitXml.destination = file("${rootProject.buildDir}/test-results")
+        }
+    }
+}
+
+task testReport(type: TestReport) {
+    description 'Generates test report for all projects'
+    destinationDir = file("$buildDir/reports")
+}
